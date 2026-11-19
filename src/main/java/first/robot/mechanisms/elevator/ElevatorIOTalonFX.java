@@ -31,6 +31,7 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.sim.ChassisReference;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState.MotorType;
 
@@ -64,6 +65,8 @@ public class ElevatorIOTalonFX implements ElevatorIO {
     private final StatusSignal<Current> signal_follower_stator;
     private final StatusSignal<Current> signal_follower_supply;
     private final StatusSignal<Temperature> signal_follower_temperature;
+
+    private Voltage inputVoltage = Volts.zero();
 
     public ElevatorIOTalonFX() {
 
@@ -111,7 +114,7 @@ public class ElevatorIOTalonFX implements ElevatorIO {
 
         // Replace this with how fast the robot controller actually runs
         BaseStatusSignal.setUpdateFrequencyForAll(
-            50.0, 
+            1000.0, 
             signal_master_position,
             signal_master_velocity,
             signal_master_acceleration,
@@ -133,16 +136,18 @@ public class ElevatorIOTalonFX implements ElevatorIO {
         if (Robot.isSimulation()) {
             sim_master = motor_master.getSimState();
             sim_master.setMotorType(MotorType.KrakenX60);
+            sim_master.Orientation = ChassisReference.Clockwise_Positive;
             sim_follower = motor_follower.getSimState();
             sim_follower.setMotorType(MotorType.KrakenX60);
+            sim_follower.Orientation = ChassisReference.CounterClockwise_Positive;
             sim_mechanism = new ElevatorSim(
                 DCMotor.getKrakenX60(2), 
                 ElevatorConstants.gearing, 
-                Units.lbsToKilograms(10), 
+                Units.lbsToKilograms(5), 
                 Units.inchesToMeters(ElevatorConstants.drum_circumference/(2.0 * Math.PI)), 
                 0,
                 Units.inchesToMeters(ElevatorConstants.mechanical_max_height),
-                false, 
+                true, 
                 0);
         }
 
@@ -156,8 +161,8 @@ public class ElevatorIOTalonFX implements ElevatorIO {
             sim_master.setSupplyVoltage(Volts.of(12.0)); // Fixes 2027 WPILib Alpha 8 Bug
             sim_follower.setSupplyVoltage(Volts.of(12.0));
 
-            sim_mechanism.update(0.020);
             sim_mechanism.setInputVoltage(sim_master.getMotorVoltage());
+            sim_mechanism.update(0.020);
 
             Telemetry.log("Elevator/Input Voltage", sim_master.getMotorVoltage());
             Telemetry.log("Elevator/Sim Mechanism Position", sim_mechanism.getPosition());
@@ -214,5 +219,19 @@ public class ElevatorIOTalonFX implements ElevatorIO {
     public void set_voltage(Voltage volts) {
         Telemetry.log("Elevator/Controls/Applied Voltage", volts);
         motor_master.setControl(control_voltage.withOutput(volts));
+        inputVoltage = volts;
+    }
+
+    @Override
+    public void updatePID(double kp, double ki, double kd, double ks, double kv, double kg) {
+        configuration.Slot0.kP = kp;
+        configuration.Slot0.kI = ki;
+        configuration.Slot0.kD = kd;
+        configuration.Slot0.kS = ks;
+        configuration.Slot0.kV = kv;
+        configuration.Slot0.kG = kg;
+
+        motor_master.getConfigurator().apply(configuration, 0.25);
+        motor_follower.getConfigurator().apply(configuration, 0.25);
     }
 }

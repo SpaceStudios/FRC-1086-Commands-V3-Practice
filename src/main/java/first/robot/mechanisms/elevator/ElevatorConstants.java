@@ -22,7 +22,7 @@ import com.ctre.phoenix6.signals.InvertedValue;
 /** Add your docs here. */
 public class ElevatorConstants {
     public static final Current motor_supply_limit = Amps.of(60);
-    public static final Current motor_stator_limit = Amps.of(60);
+    public static final Current motor_stator_limit = Amps.of(80);
     public static final int drum_pulley_teeth = 36;
     public static final Distance drum_pulley_pitch = Millimeters.of(5);
     public static final double gearing = 5.0;
