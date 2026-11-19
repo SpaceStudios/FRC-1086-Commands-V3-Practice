@@ -9,7 +9,6 @@ import static org.wpilib.units.Units.Inches;
 import static org.wpilib.units.Units.Rotations;
 import static org.wpilib.units.Units.Volts;
 
-import org.wpilib.epilogue.Epilogue;
 import org.wpilib.math.system.DCMotor;
 import org.wpilib.simulation.ElevatorSim;
 import org.wpilib.telemetry.Telemetry;
@@ -157,19 +156,12 @@ public class ElevatorIOTalonFX implements ElevatorIO {
     @Override
     public void updateInputs(ElevatorData data) {
         if (Robot.isSimulation()) {
-            // TODO: Fix this once CTRE Fixes their vendor dep
-            sim_master.setSupplyVoltage(Volts.of(12.0)); // Fixes 2027 WPILib Alpha 8 Bug
+            sim_master.setSupplyVoltage(Volts.of(12.0));
             sim_follower.setSupplyVoltage(Volts.of(12.0));
 
             sim_mechanism.setInputVoltage(sim_master.getMotorVoltage());
             sim_mechanism.update(0.020);
 
-            Telemetry.log("Elevator/Input Voltage", sim_master.getMotorVoltage());
-            Telemetry.log("Elevator/Sim Mechanism Position", sim_mechanism.getPosition());
-            Telemetry.log("Elevator/Sim Master/Duty Cycle", motor_master.getDutyCycle().getValueAsDouble());
-            Telemetry.log("Elevator/Sim Master/Hit Stator", motor_master.getFault_StatorCurrLimit().getValue());
-            Telemetry.log("Elevator/Sim Master/Hit Supply", motor_master.getFault_SupplyCurrLimit().getValue());
-            
             sim_master.setRawRotorPosition(Units.metersToInches(sim_mechanism.getPosition()) * ElevatorConstants.drum_conversion_factor);
             sim_master.setRotorVelocity(Units.metersToInches(sim_mechanism.getVelocity()) * ElevatorConstants.drum_conversion_factor);
             sim_follower.setRawRotorPosition(Units.metersToInches(sim_mechanism.getPosition()) * ElevatorConstants.drum_conversion_factor);
